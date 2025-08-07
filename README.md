@@ -66,7 +66,7 @@ graph TD
 ### **Option 1: Using Terraform (Recommended)**
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/RH-LabX.git
+git clone https://github.com/pallavwankhede19/RH-LabX
 cd RH-LabX
 
 # Navigate to terraform directory
@@ -244,3 +244,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Happy Learning!** 🎓 **RH-LabX** is designed to provide hands-on experience with real-world Linux administration scenarios. Start with the quick start guide and work through the practice scenarios to build your RHCE skills.
 </result>
 </attempt_completion>
+
