@@ -2,20 +2,6 @@
 
 A comprehensive Docker-based lab environment designed for RHCE (Red Hat Certified Engineer) certification training and hands-on Linux administration practice.
 
-## 📋 Table of Contents
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Quick Start](#quick-start)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Configuration](#configuration)
-- [Project Structure](#project-structure)
-- [Testing](#testing)
-- [Contributing](#contributing)
-- [License](#license)
-
 ## 🎯 Overview
 
 **RH-LabX** provides a complete containerized lab environment for RHCE certification preparation. It creates a multi-server setup with 4 Rocky Linux servers and 1 control node, pre-configured with all necessary tools for hands-on Linux administration practice.
@@ -45,53 +31,12 @@ A comprehensive Docker-based lab environment designed for RHCE (Red Hat Certifie
 - ✅ System Automation
 - ✅ Container Orchestration
 
-## 🏗️ Architecture
 
-```mermaid
-graph TD
-    A[Control Node] -->|SSH| B[Server 1:3331]
-    A -->|SSH| C[Server 2:3332]
-    A -->|SSH| D[Server 3:3333]
-    A -->|SSH| E[Server 4:3334]
-    
-    B -.->|Docker Network| C
-    C -.->|Docker Network| D
-    D -.->|Docker Network| E
-    
-    F[Terraform] -->|Manages| G[Docker Containers]
-```
-
-## 🚀 Quick Start
-
-### **Option 1: Using Terraform (Recommended)**
-```bash
-# Clone the repository
-git clone https://github.com/pallavwankhede19/RH-LabX
-cd RH-LabX
-
-# Navigate to terraform directory
-cd terraform
-
-# Initialize Terraform
-terraform init
-
-# Deploy the lab environment
-terraform apply
-```
-
-### **Option 2: Manual Docker Setup**
-```bash
-# Build the Docker image
-docker build -t rh-labx:latest .
-
-# Create the lab containers
-docker-compose up -d
-```
 
 ## 📋 Prerequisites
 
 - **Docker** (version 20.10 or higher)
-- **Docker Compose** (version 1.29 or higher)
+- **Docker Compose** (version 1.29 or higher) (optional)
 - **Terraform** (version 1.0 or higher)
 - **Git** (for cloning the repository)
 - **SSH client** (for connecting to containers)
@@ -102,51 +47,104 @@ docker-compose up -d
 - **Storage**: 5GB free space
 - **Network**: Internet connection for initial setup
 
+## 🚀 Quick Start
 ## 🔧 Installation
 
 ### **Step 1: Clone Repository**
 ```bash
 git clone https://github.com/yourusername/RH-LabX.git
 cd RH-LabX
+ls (It will show you all files required for this environment)
 ```
-
-### **Step 2: Using Terraform**
+### **step 2: create Docker image and main Docker container named controlnode**
 ```bash
-cd terraform
-terraform init
-terraform plan
-terraform apply
-```
-
-### **Step 3: Verify Deployment**
-```bash
+sudo docker build -t sandbox:latest .
+sudo docker images
+sudo docker run -d --privileged --name controlnode --hostname controlnode -p 2222:22 --tmpfs /run --tmpfs /run/lock -v /var/run/docker.sock:/var/run/docker.sock -v /sys/fs/cgroup:/sys/fs/cgroup:ro sandbox /usr/sbin/init
 # Check running containers
-docker ps
-
-# Test SSH connectivity
-ssh -p 3331 root@localhost
-```
-
-## 🎮 Usage
-
-### **Connect to Lab Environment**
+sudo docker ps
+``` 
+### **Step 3: Using Terraform build servers **
 ```bash
-# Connect to individual servers
-ssh -p 3331 root@localhost  # Server 1
-ssh -p 3332 root@localhost  # Server 2
-ssh -p 3333 root@localhost  # Server 3
-ssh -p 3334 root@localhost  # Server 4
-
-# Connect to control node
-docker exec -it controlnode bash
+If terrform is not installed then install it by following steps
+1. Add HashiCorp GPG key
+sudo apt-get update && sudo apt-get install -y gnupg software-properties-common curl
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+2. Add the official Terraform repository
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
+https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
+sudo tee /etc/apt/sources.list.d/hashicorp.list
+3. Install Terraform
+sudo apt-get update
+sudo apt-get install terraform
+4. Verify Installation
+terraform -version
+cd terraform
+sudo terraform init
+sudo terraform plan
+sudo terraform apply
+# Check running containers
+sudo docker ps
 ```
-
-### **Run Ansible Playbooks**
+### **step 4: check if main controlnode and servers are connected to same Docker Network
 ```bash
-# From control node
-cd /home/matthew
-ansible-playbook -i inventory.ini playbook.yml
+# check Docker network inspect
+sudo docker network inspect ansible-net
+sudo docker network connect ansible-net controlnode
 ```
+### **step 5: switch inside in controlnode 
+```bash
+sudo docker exec -it controlnode bash
+# After switching inside in controlnode
+it will show like this
+[root@machineID /]
+# change directory
+[root@machineID /] cd /
+# After changing directory it should show like this
+[root@machineID ~] 
+# Run "setup_all.sh" script to connect ssh with all containers and create lvm environment 
+[root@machineID ~] chmod +x /setup_all.sh
+[root@machineID ~] ./setup_all.sh
+it will connect all servers to main controlnode with ssh also give full environment to practice LVM
+```
+### ***step 6: Test ssh with all servers with Inventory and ansible.cgf
+```bash
+# Make directories
+1. [root@machineID ~] mkdir roles
+2. [root@machineID ~] mkdir mycollections
+# Inside a controlnode make ansible.cfg
+3. [root@machineID ~] vim ansible.cfg
+it should open vim editor, then write following commands to configure servers to controlnode
+[defaults]
+inventory = ./inventory
+roles_path = ./roles
+collections_path = ./mycollection
+remote_user = root
+ask_pass = false
+
+[priviliege_escalation]
+become = true
+become_method = sudo
+become_remote_user = root
+become_ask_pass = false
+
+:wq (save it with like this and exit vim editor)
+# Make Inventory
+4. [root@machineID ~] vim inventory
+[servers]
+server1
+server2
+server3
+server4
+
+:wq (save it with like this and exit vim editor)
+# Now ping all servers with main controlnode
+5. [root@machineID ~] ansible -m ping all
+it should show all severs has been ping pong
+# (optional if ansible.cfg is not present)
+6. [root@machineID ~] ansible -i inventory -m ping all
+it should show all severs has been ping pong
+
 
 ### **Practice Scenarios**
 - **LVM Management**: Create, resize, and manage logical volumes
@@ -154,26 +152,9 @@ ansible-playbook -i inventory.ini playbook.yml
 - **Database Administration**: Set up MariaDB with user management
 - **Network Services**: Configure NFS shares and Samba server
 - **Security**: Implement firewalld rules and SELinux policies
-
-## ⚙️ Configuration
-
-### **Environment Variables**
-```bash
-# Optional: Customize container count
-export CONTAINER_COUNT=4
-
-# Optional: Change SSH port range
-export SSH_BASE_PORT=3331
 ```
 
-### **Terraform Variables**
-Edit `terraform/variables.tf` to customize:
-- Container count
-- SSH port range
-- Docker network settings
-
 ## 📁 Project Structure
-
 ```
 RH-LabX/
 ├── 📄 README.md                    # This file
@@ -190,27 +171,7 @@ RH-LabX/
 └── 📁 docs/                       # Documentation (future)
 ```
 
-## 🧪 Testing
 
-### **Health Checks**
-```bash
-# Verify all containers are running
-docker ps | grep server
-
-# Test SSH connectivity
-for port in 3331 3332 3333 3334; do
-  ssh -p $port root@localhost "echo 'Server $((port-3330)) is ready'"
-done
-```
-
-### **Validation Tests**
-```bash
-# Test LVM setup
-docker exec server1 lsblk
-
-# Test Ansible connectivity
-docker exec controlnode ansible all -i inventory.ini -m ping
-```
 
 ## 🤝 Contributing
 
@@ -244,4 +205,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Happy Learning!** 🎓 **RH-LabX** is designed to provide hands-on experience with real-world Linux administration scenarios. Start with the quick start guide and work through the practice scenarios to build your RHCE skills.
 </result>
 </attempt_completion>
+
 
