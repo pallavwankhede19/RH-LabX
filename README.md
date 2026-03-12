@@ -52,7 +52,7 @@ A comprehensive Docker-based lab environment designed for RHCE (Red Hat Certifie
 
 ### **Step 1: Clone Repository**
 ```bash
-git clone https://github.com/yourusername/RH-LabX.git
+git clone https://github.com/your_username/RH-LabX.git
 cd RH-LabX
 ls (It will show you all files required for this environment)
 ```
@@ -205,5 +205,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Happy Learning!** 🎓 **RH-LabX** is designed to provide hands-on experience with real-world Linux administration scenarios. Start with the quick start guide and work through the practice scenarios to build your RHCE skills.
 </result>
 </attempt_completion>
+
 
 
